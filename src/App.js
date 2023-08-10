@@ -10,6 +10,8 @@ function App() {
   const [showOptions, setShowOptions] = useState(false);
   const [confirmOptions, setConfirmOptions] = useState(false);
   const [confirmation, setConfirmations] = useState(true);
+  const [doConfirmOption, setDoConfirmOption] = useState(false);
+  const [doConfirmation, setDoConfirmations] = useState(true);
   const [wait, setWait] = useState(false);
   const [greeting, setGreeting] = useState('');
   const [ending, setEnding] = useState('');
@@ -42,6 +44,9 @@ function App() {
     const queryParams = new URLSearchParams(window.location.search);
     // 获取特定键的值
     const idParam = queryParams.get('id');
+    console.log(idParam);
+    handleAssistantMessage("Do you want to do confirmation?");
+    setDoConfirmOption(true);
     setId(idParam);
     const jsonData = {
       "uuid": idParam,
@@ -51,7 +56,9 @@ function App() {
       setEnding(data.message[0].ending);
       setGreeting(data.message[0].greeting);
       handleAssistantMessage(data.message[0].greeting);
-      setQuestions(data.message[0].questions.questions);
+      const jsonQuestions = JSON.parse(data.message[0].questions);
+      console.log(jsonQuestions);
+      setQuestions(jsonQuestions.questions);
     });
 
   }, []);
@@ -76,8 +83,10 @@ function App() {
     };
     setMessages((messages) => [...messages, newMessage]);
     setShowOptions(false);
+    if(doConfirmation == true){
     setConfirmOptions(true);
     handleAssistantMessage("Do you confirm your answer?");
+    }
     setIsInputDisabled(true);
   };
 
@@ -105,6 +114,18 @@ function App() {
     setIsInputDisabled(true);
   };
 
+  const handleDoConfirmYes = (YES) =>{
+
+    setDoConfirmations(true);
+    setDoConfirmOption(false);
+  }
+
+  const handleDoConfirmNo = (NO) =>{
+
+    setDoConfirmations(false);
+    setDoConfirmOption(false);
+  }
+
   const handleSendMessage = async () => {
     if (userInput.trim() === '') return;
     const newMessage = {
@@ -113,7 +134,7 @@ function App() {
       sender: 'user',
     };
     setWait(true);
-    setMessages([...messages, newMessage]);
+    setMessages((messages) => [...messages, newMessage]);
     setUserInput('');
     const updatedQueue = [...questions];
     const question = updatedQueue.shift(); // 从队头移除项
@@ -132,9 +153,18 @@ function App() {
         let jsonResponse = JSON.parse(data.message);
         setWait(false);
         if (jsonResponse.isRelevant) {
+          if(doConfirmation == true){
           handleAssistantMessage("Do you confirm your answer?");
           setConfirmOptions(true);
-
+          } else {
+            if(updatedQueue.length > 1 ){
+              const updatedQueue = [...questions];
+              updatedQueue.shift(); // 从队头移除项
+              setQuestions(updatedQueue);
+            }else{
+              handleAssistantMessage(ending);
+            }
+          }
         } else {
           handleAssistantMessage(jsonResponse.response);
           setIsInputDisabled(false);
@@ -261,6 +291,28 @@ function App() {
         </div>
       )}
 
+      {/* 是否验证按钮区域 */}
+      {doConfirmOption && (
+        <div className="bg-white p-4 shadow-md rounded-md mt-4">
+          <div className="flex justify-center space-x-4">
+            <button
+              key='YES'
+              className="bg-green-500 text-white rounded-lg px-4 py-2"
+              onClick={() => handleDoConfirmYes('YES')}
+            >
+              YES
+            </button>
+            <button
+              key='NO'
+              className="bg-red-500 text-white rounded-lg px-4 py-2"
+              onClick={() => handleDoConfirmNo('NO')}
+            >
+              NO
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 用户输入区域 */}
       <div className="bg-white mt-4 p-4 shadow-md rounded-md">
         <div className="flex">
@@ -269,12 +321,14 @@ function App() {
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             className="flex-1 rounded-l-lg border border-gray-300 p-2 focus:outline-none"
-            placeholder="Type your message"
+            placeholder={`${isInputDisabled ? 'Please waiting for the response' : 'Type your text'
+              }`}
             disabled={isInputDisabled}
           />
           {!showOptions && !confirmOptions && (
             <button
-              className="bg-blue-500 text-white rounded-r-lg px-4 py-2 ml-2"
+              className={`rounded-r-lg px-4 py-2 ml-2 ${isInputDisabled ? 'bg-gray-500 text-gray-300 cursor-not-allowed' : 'bg-blue-500 text-white'
+                }`}
               onClick={handleSendMessage}
               disabled={isInputDisabled}
             >
