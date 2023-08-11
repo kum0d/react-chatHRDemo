@@ -152,7 +152,7 @@ function App() {
     };
     setIsInputDisabled(true);
     await fetchDataFromBackend(jsonData, 'https://chathr.854799920.workers.dev/').then((data) => {
-      setTimeout(() => {
+      
         let jsonResponse = JSON.parse(data.message);
         setWait(false);
         if (jsonResponse.isRelevant) {
@@ -178,7 +178,7 @@ function App() {
           handleAssistantMessage(jsonResponse.response);
           setIsInputDisabled(false);
         }
-      }, 20000);
+      
     });
   };
 
