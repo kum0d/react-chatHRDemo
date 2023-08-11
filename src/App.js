@@ -15,6 +15,7 @@ function App() {
   const [wait, setWait] = useState(false);
   const [greeting, setGreeting] = useState('');
   const [ending, setEnding] = useState('');
+  const [role, setRole] = useState('');
   const [questions, setQuestions] = useState([]);
 
   const chatContainerRef = useRef();
@@ -56,6 +57,7 @@ function App() {
       setEnding(data.message[0].ending);
       setGreeting(data.message[0].greeting);
       handleAssistantMessage(data.message[0].greeting);
+      setRole(data.message[0].prompt);
       const jsonQuestions = JSON.parse(data.message[0].questions);
       console.log(jsonQuestions);
       setQuestions(jsonQuestions.questions);
@@ -83,9 +85,9 @@ function App() {
     };
     setMessages((messages) => [...messages, newMessage]);
     setShowOptions(false);
-    if(doConfirmation == true){
-    setConfirmOptions(true);
-    handleAssistantMessage("Do you confirm your answer?");
+    if (doConfirmation == true) {
+      setConfirmOptions(true);
+      handleAssistantMessage("Do you confirm your answer?");
     }
     setIsInputDisabled(true);
   };
@@ -114,13 +116,13 @@ function App() {
     setIsInputDisabled(true);
   };
 
-  const handleDoConfirmYes = (YES) =>{
+  const handleDoConfirmYes = (YES) => {
 
     setDoConfirmations(true);
     setDoConfirmOption(false);
   }
 
-  const handleDoConfirmNo = (NO) =>{
+  const handleDoConfirmNo = (NO) => {
 
     setDoConfirmations(false);
     setDoConfirmOption(false);
@@ -145,7 +147,8 @@ function App() {
         "assistant": question.question,
         "user": userInput.trim()
       },
-      "flag": 0
+      "flag": 0,
+      "role": role
     };
     setIsInputDisabled(true);
     await fetchDataFromBackend(jsonData, 'https://chathr.854799920.workers.dev/').then((data) => {
@@ -153,16 +156,22 @@ function App() {
         let jsonResponse = JSON.parse(data.message);
         setWait(false);
         if (jsonResponse.isRelevant) {
-          if(doConfirmation == true){
-          handleAssistantMessage("Do you confirm your answer?");
-          setConfirmOptions(true);
+          if (doConfirmation == true) {
+            handleAssistantMessage("Do you confirm your answer?");
+            setConfirmOptions(true);
           } else {
-            if(updatedQueue.length > 1 ){
+            if (updatedQueue.length > 1) {
               const updatedQueue = [...questions];
               updatedQueue.shift(); // 从队头移除项
               setQuestions(updatedQueue);
-            }else{
+            } else {
               handleAssistantMessage(ending);
+              const jsonRecordData = {
+                "interview_id": id,
+                "record": JSON.stringify([...messages]),
+                "flag": 1
+              };
+              fetchDataFromBackend(jsonRecordData, 'https://supahrbackend.854799920.workers.dev/');
             }
           }
         } else {
@@ -213,12 +222,21 @@ function App() {
     if (questions.length > 0) {
       const updatedQueue = [...questions];
       const question = updatedQueue.shift(); // 从队头移除项
-      handleAssistantMessage(question.question);
-      handleSetOptions(question.options);
-      if (question.options.length > 0) {
-        setShowOptions(true);
-        setIsInputDisabled(true);
-      }
+      const jsonData = {
+        "question": question.question,
+        "message": "",
+        "flag": 0,
+        "role": role
+      };
+      fetchDataFromBackend(jsonData, 'https://chathr.854799920.workers.dev/').then((data) => {
+        handleAssistantMessage(data.message);
+        handleSetOptions(question.options);
+        if (question.options.length > 0) {
+          setShowOptions(true);
+          setIsInputDisabled(true);
+        }
+      });
+
     }
   }, [questions]);
 
