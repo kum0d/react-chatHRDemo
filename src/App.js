@@ -11,7 +11,7 @@ function App() {
   const [confirmOptions, setConfirmOptions] = useState(false);
   const [confirmation, setConfirmations] = useState(true);
   const [doConfirmOption, setDoConfirmOption] = useState(false);
-  const [doConfirmation, setDoConfirmations] = useState(true);
+  const [doConfirmation, setDoConfirmations] = useState(null);
   const [wait, setWait] = useState(false);
   const [greeting, setGreeting] = useState('');
   const [ending, setEnding] = useState('');
@@ -41,13 +41,14 @@ function App() {
   };
 
   useEffect(() => {
+    console.log(doConfirmation);
+    if(doConfirmation != null )
+    {
     // 获取查询参数部分
     const queryParams = new URLSearchParams(window.location.search);
     // 获取特定键的值
     const idParam = queryParams.get('id');
     console.log(idParam);
-    handleAssistantMessage("Do you want to do confirmation?");
-    setDoConfirmOption(true);
     setId(idParam);
     const jsonData = {
       "uuid": idParam,
@@ -62,8 +63,14 @@ function App() {
       console.log(jsonQuestions);
       setQuestions(jsonQuestions.questions);
     });
+    }
 
-  }, []);
+  }, [doConfirmation]);
+
+  useEffect(() =>{
+    handleAssistantMessage("Do you want to do confirmation?");
+    setDoConfirmOption(true);
+  },[])
 
 
   // 动态生成的选项数据
@@ -123,7 +130,7 @@ function App() {
   }
 
   const handleDoConfirmNo = (NO) => {
-
+    
     setDoConfirmations(false);
     setDoConfirmOption(false);
   }
